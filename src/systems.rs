@@ -334,13 +334,15 @@ pub fn clean_respawn_entities(world: &mut World) {
     let mut entities_to_despawn_descendants = Vec::new();
 
     {
-        let (
+        let Ok((
             ldtk_worlds_to_clean,
             ldtk_levels_to_clean,
             other_ldtk_levels,
             worldly_entities,
             mut level_events,
-        ) = system_state.get_mut(world);
+        )) = system_state.get_mut(world) else {
+            return;
+        };
 
         for world_children in ldtk_worlds_to_clean.iter() {
             for child in world_children

@@ -25,8 +25,9 @@ use crate::assets::{ExternalLevelMetadata, ExternalLevels};
 fn ldtk_path_to_asset_path<'b>(
     ldtk_path: &AssetPath<'b>,
     rel_path: &str,
-) -> Result<AssetPath<'b>, ParseAssetPathError> {
-    ldtk_path.resolve_embed(rel_path)
+) -> Result<AssetPath<'static>, ParseAssetPathError> {
+    let rel_asset_path = AssetPath::from(rel_path.to_string());
+    Ok(ldtk_path.resolve_embed(&rel_asset_path))
 }
 
 /// Main asset for loading LDtk project data.
