@@ -180,7 +180,12 @@ pub fn ldtk_pixel_coords_to_grid_coords(
     ldtk_grid_height: i32,
     grid_size: IVec2,
 ) -> GridCoords {
-    ldtk_grid_coords_to_grid_coords(ldtk_coords / grid_size, ldtk_grid_height)
+    let rounded = IVec2::new(
+        (ldtk_coords.x as f32 / grid_size.x as f32).round() as i32,
+        (ldtk_coords.y as f32 / grid_size.y as f32).round() as i32,
+    );
+
+    ldtk_grid_coords_to_grid_coords(rounded, ldtk_grid_height)
 }
 
 /// Performs LDtk grid coordinate to translation conversion, so that the resulting translation is
