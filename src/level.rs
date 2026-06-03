@@ -186,11 +186,18 @@ fn insert_tile_metadata_for_layer(
     }
 }
 
-fn layer_grid_tiles(grid_tiles: Vec<TileInstance>) -> Vec<Vec<TileInstance>> {
+fn layer_grid_tiles(
+    grid_tiles: Vec<TileInstance>,
+    layer_height_in_tiles: i32,
+    layer_grid_size: i32,
+) -> Vec<Vec<TileInstance>> {
     let mut layer = Vec::new();
     let mut overflow = Vec::new();
     for tile in grid_tiles {
-        if layer.iter().any(|t: &TileInstance| t.px == tile.px) {
+        let gc = tile_to_grid_coords(&tile, layer_height_in_tiles, layer_grid_size);
+        if layer.iter().any(|t: &TileInstance| {
+            tile_to_grid_coords(t, layer_height_in_tiles, layer_grid_size) == gc
+        }) {
             overflow.push(tile);
         } else {
             layer.push(tile);
@@ -199,17 +206,20 @@ fn layer_grid_tiles(grid_tiles: Vec<TileInstance>) -> Vec<Vec<TileInstance>> {
 
     let mut layered_grid_tiles = vec![layer];
     if !overflow.is_empty() {
-        layered_grid_tiles.extend(layer_grid_tiles(overflow));
+        layered_grid_tiles.extend(layer_grid_tiles(
+            overflow,
+            layer_height_in_tiles,
+            layer_grid_size,
+        ));
     }
 
     layered_grid_tiles
 }
 
 fn tile_in_layer_bounds(tile: &TileInstance, layer_instance: &LayerInstance) -> bool {
-    tile.px.x >= 0
-        && tile.px.y >= 0
-        && tile.px.x < (layer_instance.c_wid * layer_instance.grid_size)
-        && tile.px.y < (layer_instance.c_hei * layer_instance.grid_size)
+    let gc: IVec2 =
+        tile_to_grid_coords(tile, layer_instance.c_hei, layer_instance.grid_size).into();
+    gc.x >= 0 && gc.y >= 0 && gc.x < layer_instance.c_wid && gc.y < layer_instance.c_hei
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -465,16 +475,17 @@ pub fn spawn_level(
                 let mut grid_tiles = layer_instance.grid_tiles.clone();
                 grid_tiles.extend(layer_instance.auto_layer_tiles.clone());
 
-                for (i, grid_tiles) in layer_grid_tiles(grid_tiles)
-                    .into_iter()
-                    // filter out tiles that are out of bounds
-                    .map(|grid_tiles| {
-                        grid_tiles
-                            .into_iter()
-                            .filter(|tile| tile_in_layer_bounds(tile, layer_instance))
-                            .collect::<Vec<_>>()
-                    })
-                    .enumerate()
+                for (i, grid_tiles) in
+                    layer_grid_tiles(grid_tiles, layer_instance.c_hei, layer_instance.grid_size)
+                        .into_iter()
+                        // filter out tiles that are out of bounds
+                        .map(|grid_tiles| {
+                            grid_tiles
+                                .into_iter()
+                                .filter(|tile| tile_in_layer_bounds(tile, layer_instance))
+                                .collect::<Vec<_>>()
+                        })
+                        .enumerate()
                 {
                     let layer_entity = commands.spawn_empty().id();
 
